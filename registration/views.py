@@ -184,9 +184,9 @@ def register(request, backend, success_url=None, form_class=None,
     if request.method == 'POST':
         form = form_class(data=request.POST, files=request.FILES)
         if form.is_valid():
-            new_user = backend.register(request, **form.cleaned_data)
+            new_profile = backend.register(request, **form.cleaned_data)
             if success_url is None:
-                to, args, kwargs = backend.post_registration_redirect(request, new_user)
+                to, args, kwargs = backend.post_registration_redirect(request, new_profile)
                 return redirect(to, *args, **kwargs)
             else:
                 return redirect(success_url)
