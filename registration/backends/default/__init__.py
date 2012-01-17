@@ -7,6 +7,8 @@ from registration.models import RegistrationProfile
 
 try:
     REGISTRATION_FORM = settings.REGISTRATION_FORM
+    ACTIVATION_FORM = settings.ACTIVATION_FORM
+    ACTIVATION_METHOD = settings.ACTIVATION_METHOD
 except AttributeError:
     raise ImproperlyConfigured("REGISTRATION_FORM must be defined")
 
@@ -74,7 +76,7 @@ class DefaultBackend(object):
         class of this backend as the sender.
 
         """
-        email, password = kwargs['email']
+        email = kwargs['email']
         if Site._meta.installed:
             site = Site.objects.get_current()
         else:
@@ -82,7 +84,7 @@ class DefaultBackend(object):
         new_profile = RegistrationProfile.objects.create_profile(email, site)
         return new_profile
 
-    def activate(self, request, activation_key):
+    def activate(self, request, form, activation_key):
         """
         Given an an activation key, look up and activate the user
         account corresponding to that key (if possible).
@@ -93,11 +95,8 @@ class DefaultBackend(object):
         the class of this backend as the sender.
         
         """
-        activated = RegistrationProfile.objects.activate_user(activation_key)
-        callback = getattr(settings, 'ACTIVATION_CALLBACK', None)
-        if activated and callback:
-            settings.callback(request, activation_key)
-        return activated
+        profile = RegistrationProfile.objects.activate_user(activation_key, request)
+        return ACTIVATION_METHOD(request, form, profile)
 
     def registration_allowed(self, request):
         """
@@ -120,6 +119,12 @@ class DefaultBackend(object):
         
         """
         return REGISTRATION_FORM
+
+    def get_activation_form_class(self, request):
+        """
+        Return the default form class used for user activation.
+        """ 
+        return ACTIVATION_FORM
 
     def post_registration_redirect(self, request, user):
         """

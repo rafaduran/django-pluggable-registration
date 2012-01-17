@@ -15,7 +15,8 @@ from django.utils.translation import ugettext_lazy as _
 attrs_dict = {'class': 'required'}
 
 class RegistrationForm(forms.Form):
-    email = forms.EmailField(label=_("E-mail"), max_length=75)
+    email = forms.EmailField(widget=forms.TextInput(attrs=dict(attrs_dict,
+                                                    maxlength=75)))
 
     def clean_email(self):
         pass
@@ -23,12 +24,11 @@ class RegistrationForm(forms.Form):
 
 
 class ActivationForm(forms.Form):
-    username = forms.RegexField(label=_("Username"), max_length=30, regex=r'^\w+$',
-        help_text = _("Required. 30 characters or fewer. Alphanumeric characters only (letters, digits and underscores)."),
-        error_message = _("This value must contain only letters, numbers and underscores."))
-    password = forms.CharField(widget=forms.PasswordInput(render_value=False),
-                                label=_("Password"))
+    password1 = forms.CharField(widget=forms.PasswordInput(attrs=attrs_dict,
+        render_value=False), label=_("Password"))
+    password2 = forms.CharField(widget=forms.PasswordInput(attrs=attrs_dict,
+        render_value=False), label=_("Password (again)"))
 
-    def clean_username(self):
+    def clean(self):
         pass
-    clean_username = abc.abstractmethod(clean_username)
+    clean = abc.abstractmethod(clean)

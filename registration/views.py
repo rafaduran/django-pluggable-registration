@@ -72,14 +72,18 @@ def activate(request, backend,
     
     """
     backend = get_backend(backend)
-    account = backend.activate(request, **kwargs)
+    activation_form = backend.get_activation_form_class(request)
+    if request.method == 'POST':
+        form = activation_form(data=request.POST, files=request.FILES)
+        if form.is_valid():
+            account = backend.activate(request, form, **kwargs)
 
-    if account:
-        if success_url is None:
-            to, args, kwargs = backend.post_activation_redirect(request, account)
-            return redirect(to, *args, **kwargs)
-        else:
-            return redirect(success_url)
+            if account:
+                if success_url is None:
+                    to, args, kwargs = backend.post_activation_redirect(request, account)
+                    return redirect(to, *args, **kwargs)
+                else:
+                    return redirect(success_url)
 
     if extra_context is None:
         extra_context = {}
@@ -87,9 +91,12 @@ def activate(request, backend,
     for key, value in extra_context.items():
         context[key] = callable(value) and value() or value
 
+    if activation_form is not None:
+        kwargs['form'] = activation_form
+
     return render_to_response(template_name,
-                              kwargs,
-                              context_instance=context)
+                            kwargs,
+                            context_instance=context)
 
 
 def register(request, backend, success_url=None, form_class=None,

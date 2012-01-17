@@ -1,7 +1,6 @@
 import datetime
 import random
 import re
-import abc
 
 from django.conf import settings
 from django.db import models
@@ -23,7 +22,7 @@ class RegistrationManager(models.Manager):
     keys), and for cleaning out expired inactive accounts.
     
     """
-    def activate_user(self, activation_key):
+    def activate_user(self, activation_key, request):
         """
         Validate an activation key and activate the corresponding
         ``User`` if valid.
@@ -51,15 +50,11 @@ class RegistrationManager(models.Manager):
             except self.model.DoesNotExist:
                 return False
             if not profile.activation_key_expired():
-                ok = self._activate()
-                if ok:
-                    profile.activation_key = self.model.ACTIVATED
-                    profile.save()
-                return ok
+                profile.activation_key = self.model.ACTIVATED
+                profile.save()
+                return profile
         return False
 
-    def _activate(self):
-        settings.ACTIVATION_METHOD()
  
 
     def create_profile(self, email, site, send_email=True):
@@ -103,7 +98,7 @@ class RegistrationProfile(models.Model):
     
     email = models.EmailField()
     activation_key = models.CharField(_('activation key'), max_length=40)
-    reg_time = models.DateTimeField(_('registration time'), auto_add=True)
+    reg_time = models.DateTimeField(_('registration time'), auto_now_add=True)
     
     objects = RegistrationManager()
     
