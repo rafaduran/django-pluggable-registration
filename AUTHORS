@@ -1,7 +1,11 @@
-The primary author of django-registration is James Bennett
+django-pluggable-registration authors:
+* Rafael Durán Castañeda <rafadurancastaneda@gmail.com>
+
+django-pluggable-registration is a fork of James Bennet 
+django-registration:
+
 <james@b-list.org>, who may be found online at
 <http://www.b-list.org/>.
-
 
 Others who have contributed to the application:
 
