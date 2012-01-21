@@ -1,16 +1,9 @@
 from django.conf import settings
 from django.contrib.sites.models import RequestSite
 from django.contrib.sites.models import Site
-from django.core.exceptions import ImproperlyConfigured
 
 from registration.models import RegistrationProfile
 
-try:
-    REGISTRATION_FORM = settings.REGISTRATION_FORM
-    ACTIVATION_FORM = settings.ACTIVATION_FORM
-    ACTIVATION_METHOD = settings.ACTIVATION_METHOD
-except AttributeError:
-    raise ImproperlyConfigured("REGISTRATION_FORM must be defined")
 
 class DefaultBackend(object):
     """
@@ -52,6 +45,9 @@ class DefaultBackend(object):
     fields and supported operations.
     
     """
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
     def register(self, request, **kwargs):
         """
         Given a username, email address and password, register a new
@@ -76,12 +72,12 @@ class DefaultBackend(object):
         class of this backend as the sender.
 
         """
-        email = kwargs['email']
         if Site._meta.installed:
             site = Site.objects.get_current()
         else:
             site = RequestSite(request)
-        new_profile = RegistrationProfile.objects.create_profile(email, site)
+        new_profile = RegistrationProfile.objects.create_profile(site,
+                kwargs['email'])
         return new_profile
 
     def activate(self, request, form, activation_key):
@@ -96,7 +92,7 @@ class DefaultBackend(object):
         
         """
         profile = RegistrationProfile.objects.activate_user(activation_key, request)
-        return ACTIVATION_METHOD(request, form, profile)
+        return self.activation_method(request, form, profile)
 
     def registration_allowed(self, request):
         """
@@ -118,13 +114,13 @@ class DefaultBackend(object):
         Return the default form class used for user registration.
         
         """
-        return REGISTRATION_FORM
+        return self.registration_form
 
     def get_activation_form_class(self, request):
         """
         Return the default form class used for user activation.
         """ 
-        return ACTIVATION_FORM
+        return self.activation_form
 
     def post_registration_redirect(self, request, user):
         """

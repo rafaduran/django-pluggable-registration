@@ -57,7 +57,7 @@ class RegistrationManager(models.Manager):
 
  
 
-    def create_profile(self, email, site, send_email=True):
+    def create_profile(self, site, email, send_email=True):
         """
         Create a ``RegistrationProfile`` for a given
         ``User``, and return the ``RegistrationProfile``.
