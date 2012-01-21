@@ -80,10 +80,12 @@ def activate(request, backend,
 
             if account:
                 if success_url is None:
-                    to, args, kwargs = backend.post_activation_redirect(request, account)
+                    to, args, kwargs = backend.post_activation_redirect(request,
+                            account)
                     return redirect(to, *args, **kwargs)
                 else:
                     return redirect(success_url)
+        kwargs['form'] = form
 
     if extra_context is None:
         extra_context = {}
@@ -91,8 +93,8 @@ def activate(request, backend,
     for key, value in extra_context.items():
         context[key] = callable(value) and value() or value
 
-    if activation_form is not None:
-        kwargs['form'] = activation_form
+    if activation_form is not None and 'form' not in kwargs:
+        kwargs['form'] = activation_form()
 
     return render_to_response(template_name,
                             kwargs,
