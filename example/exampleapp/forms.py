@@ -21,7 +21,7 @@ class ExampleActivationForm(ActivationForm):
 
     def clean_username(self):
         try:
-            _ = User.objects.get(username__iexact=self.\
+            user = User.objects.get(username__iexact=self.\
                     cleaned_data['username'])
         except User.DoesNotExist:
             return self.cleaned_data['username']
@@ -35,6 +35,3 @@ class ExampleActivationForm(ActivationForm):
                                                 " match."))
         return self.cleaned_data
 
-
-REGISTRATION_FORM = ExampleRegistrationForm
-ACTIVATION_FORM = ExampleActivationForm
