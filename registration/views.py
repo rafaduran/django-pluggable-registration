@@ -10,6 +10,9 @@ from django.template import RequestContext
 
 from registration.backends import get_backend
 
+import logging
+
+LOG = logging.getLogger(__name__)
 
 def activate(request, backend,
              template_name='registration/activate.html',
@@ -76,7 +79,8 @@ def activate(request, backend,
     if request.method == 'POST':
         form = activation_form(data=request.POST, files=request.FILES)
         if form.is_valid():
-            account = backend.activate(request, form, **kwargs)
+            LOG.error("valid")
+            account, errors = backend.activate(request, form, **kwargs)
 
             if account:
                 if success_url is None:
@@ -85,6 +89,9 @@ def activate(request, backend,
                     return redirect(to, *args, **kwargs)
                 else:
                     return redirect(success_url)
+            if errors:
+                form._errors['__all__'] = errors
+        LOG.error("invalid")
         kwargs['form'] = form
 
     if extra_context is None:
