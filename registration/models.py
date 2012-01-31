@@ -22,7 +22,7 @@ class RegistrationManager(models.Manager):
     keys), and for cleaning out expired inactive accounts.
     
     """
-    def activate_user(self, activation_key, request):
+    def activate_user(self, activation_key, request, callback, **kwargs):
         """
         Validate an activation key and activate the corresponding
         ``User`` if valid.
@@ -49,13 +49,12 @@ class RegistrationManager(models.Manager):
                 profile = self.get(activation_key=activation_key)
             except self.model.DoesNotExist:
                 return False
-            if not profile.activation_key_expired():
+            if not profile.activation_key_invalid():
                 profile.activation_key = self.model.ACTIVATED
                 profile.save()
-                return profile
-        return False
-
- 
+                #return profile
+                return callback(request, profile, **kwargs)
+        return False, _('Your activation key is not valid')
 
     def create_profile(self, site, email, send_email=True):
         """
@@ -109,7 +108,7 @@ class RegistrationProfile(models.Model):
     def __unicode__(self):
         return u"Registration information for %s" % self.email
     
-    def activation_key_expired(self):
+    def activation_key_invalid(self):
         """
         Determine whether this ``RegistrationProfile``'s activation
         key has expired, returning a boolean -- ``True`` if the key
@@ -131,9 +130,21 @@ class RegistrationProfile(models.Model):
            method returns ``True``.
         
         """
+#        expiration_date = datetime.timedelta(days=settings.ACCOUNT_ACTIVATION_DAYS)
+#        return self.activation_key == self.ACTIVATED or \
+#               (self.reg_time + expiration_date <= datetime.datetime.now())
+#    activation_key_expired.boolean = True
+        return self.activation_key_already_activated() or \
+            self.activation_key_expired() or False
+    activation_key_invalid.boolean = True
+
+    def activation_key_already_activated(self):
+        return self.activation_key == self.ACTIVATED
+    activation_key_already_activated.boolean = True
+
+    def activation_key_expired(self):
         expiration_date = datetime.timedelta(days=settings.ACCOUNT_ACTIVATION_DAYS)
-        return self.activation_key == self.ACTIVATED or \
-               (self.reg_time + expiration_date <= datetime.datetime.now())
+        return (self.reg_time + expiration_date) <= datetime.datetime.now()
     activation_key_expired.boolean = True
 
     def send_activation_email(self, site):

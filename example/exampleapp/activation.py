@@ -3,7 +3,7 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
-def activate(request, form, activation_profile):
+def activate(request, activation_profile, form):
     if activation_profile:
         LOG.debug(form.data)
         user = User(email=activation_profile.email,

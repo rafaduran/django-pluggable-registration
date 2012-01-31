@@ -77,10 +77,12 @@ def activate(request, backend,
     backend = get_backend(backend)
     activation_form = backend.get_activation_form_class(request)
     if request.method == 'POST':
-        form = activation_form(data=request.POST, files=request.FILES)
-        if form.is_valid():
+        form = activation_form and activation_form(data=request.POST,
+                files=request.FILES)
+        kwargs['form'] = form
+        if form and form.is_valid():
             LOG.error("valid")
-            account, errors = backend.activate(request, form, **kwargs)
+            account, errors = backend.activate(request, **kwargs)
 
             if account:
                 if success_url is None:
@@ -92,7 +94,6 @@ def activate(request, backend,
             if errors:
                 form._errors['__all__'] = errors
         LOG.error("invalid")
-        kwargs['form'] = form
 
     if extra_context is None:
         extra_context = {}

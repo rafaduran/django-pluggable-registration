@@ -80,7 +80,7 @@ class DefaultBackend(object):
                 kwargs['email'])
         return new_profile
 
-    def activate(self, request, form, activation_key):
+    def activate(self, request, activation_key, **kwargs):
         """
         Given an an activation key, look up and activate the user
         account corresponding to that key (if possible).
@@ -91,8 +91,9 @@ class DefaultBackend(object):
         the class of this backend as the sender.
         
         """
-        profile = RegistrationProfile.objects.activate_user(activation_key, request)
-        return self.activation_method(request, form, profile)
+        return RegistrationProfile.objects.activate_user(activation_key,
+                request, callback=self.activation_method, **kwargs)
+        # return self.activation_method(request, form, profile)
 
     def registration_allowed(self, request):
         """
