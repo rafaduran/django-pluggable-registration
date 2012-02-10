@@ -10,21 +10,12 @@ from registration.models import RegistrationProfile
 
 
 class RegistrationAdmin(admin.ModelAdmin):
-#    actions = ['activate_users', 'resend_activation_email']
-    actions = ['resend_activation_email', 'delete_expired']
+    actions = ['resend_activation_email', 'delete_expired', 'delete_activated',
+            'clean']
     list_display = ('email', 'activation_key_expired',
             'activation_key_already_activated', 'activation_key_invalid')
     search_fields = ('email',)
 
-#    def activate_users(self, request, queryset):
-#        """
-#        Activates the selected users, if they are not already
-#        activated.
-#        
-#        """
-#        for profile in queryset:
-#            RegistrationProfile.objects.activate_user(profile.activation_key)
-#    activate_users.short_description = _("Activate users")
 
     def resend_activation_email(self, request, queryset):
         """
@@ -51,5 +42,14 @@ class RegistrationAdmin(admin.ModelAdmin):
         for profile in queryset:
             if (profile.reg_time + expiration_date) <= datetime.datetime.now():
                 profile.delete()
+
+    def delete_activated(self, request, queryset):
+        for profile in queryset:
+            if profile.activation_key == RegistrationProfile.ACTIVATED:
+                profile.delete()
+
+    def clean(self, request, queryset):
+        self.delete_expired(request, queryset)
+        self.delete_activated(request, queryset)
 
 admin.site.register(RegistrationProfile, RegistrationAdmin)
