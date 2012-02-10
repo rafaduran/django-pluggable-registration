@@ -48,7 +48,7 @@ class RegistrationManager(models.Manager):
             try:
                 profile = self.get(activation_key=activation_key)
             except self.model.DoesNotExist:
-                return False
+                return False, _('Your activation key is not valid')
             if not profile.activation_key_invalid():
                 profile.activation_key = self.model.ACTIVATED
                 profile.save()
