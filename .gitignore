@@ -1,5 +1,6 @@
 *.pyc
 *.swp
+*.log
 .venv/
 *.sqlite3
 *.db
