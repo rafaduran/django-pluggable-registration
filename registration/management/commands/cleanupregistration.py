@@ -16,4 +16,5 @@ class Command(NoArgsCommand):
     help = "Delete expired user registrations from the database"
 
     def handle_noargs(self, **options):
-        RegistrationProfile.objects.delete_expired_users()
+        RegistrationProfile.objects.delete_expired()
+        RegistrationProfile.objects.delete_activated()
