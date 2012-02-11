@@ -81,7 +81,6 @@ def activate(request, backend,
                 files=request.FILES)
         kwargs['form'] = form
         if form and form.is_valid():
-            LOG.error("valid")
             account, errors = backend.activate(request, **kwargs)
 
             if account:
@@ -93,7 +92,6 @@ def activate(request, backend,
                     return redirect(success_url)
             if errors:
                 form._errors['__all__'] = errors
-        LOG.error("invalid")
 
     if extra_context is None:
         extra_context = {}

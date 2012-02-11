@@ -52,7 +52,6 @@ class RegistrationManager(models.Manager):
             if not profile.activation_key_invalid():
                 profile.activation_key = self.model.ACTIVATED
                 profile.save()
-                #return profile
                 return callback(request, profile, **kwargs)
         return False, _('Your activation key is not valid')
 

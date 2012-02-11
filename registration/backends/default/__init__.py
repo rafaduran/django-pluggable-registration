@@ -93,7 +93,6 @@ class DefaultBackend(object):
         """
         return RegistrationProfile.objects.activate_user(activation_key,
                 request, callback=self.activation_method, **kwargs)
-        # return self.activation_method(request, form, profile)
 
     def registration_allowed(self, request):
         """
