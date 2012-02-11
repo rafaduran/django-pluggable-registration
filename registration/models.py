@@ -75,6 +75,23 @@ class RegistrationManager(models.Manager):
             profile.send_activation_email(site)
         return profile
 
+    @staticmethod
+    def delete_expired(queryset=None):
+        expiration_date = datetime.timedelta(days=settings.ACCOUNT_ACTIVATION_DAYS)
+        if queryset is None:
+            queryset = RegistrationProfile.objects.all()
+        for profile in queryset:
+            if (profile.reg_time + expiration_date) <= datetime.datetime.now():
+                profile.delete()
+
+    @staticmethod
+    def delete_activated(queryset=None):
+        if queryset is None:
+            queryset = RegistrationProfile.objects.all()
+        for profile in queryset:
+            if profile.activation_key == RegistrationProfile.ACTIVATED:
+                profile.delete()
+
 
 class RegistrationProfile(models.Model):
     """

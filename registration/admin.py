@@ -38,15 +38,10 @@ class RegistrationAdmin(admin.ModelAdmin):
     resend_activation_email.short_description = _("Re-send activation emails")
 
     def delete_expired(self, request, queryset):
-        expiration_date = datetime.timedelta(days=settings.ACCOUNT_ACTIVATION_DAYS)
-        for profile in queryset:
-            if (profile.reg_time + expiration_date) <= datetime.datetime.now():
-                profile.delete()
+        RegistrationProfile.objects.delete_expired(queryset)
 
     def delete_activated(self, request, queryset):
-        for profile in queryset:
-            if profile.activation_key == RegistrationProfile.ACTIVATED:
-                profile.delete()
+        RegistrationProfile.objects.delete_activated(queryset)
 
     def clean(self, request, queryset):
         self.delete_expired(request, queryset)
