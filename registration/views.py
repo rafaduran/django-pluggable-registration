@@ -23,9 +23,12 @@ def activate(request, backend,
     The actual activation of the account will be delegated to the
     backend specified by the ``backend`` keyword argument (see below);
     the backend's ``activate()`` method will be called, passing any
-    keyword arguments captured from the URL, and will be assumed to
-    return a ``User`` if activation was successful, or a value which
-    evaluates to ``False`` in boolean context if not.
+    keyword arguments captured from the URL, the request and the instance
+    of the form gotten from ``get_activation_form`` backend (if any). If
+    activation form is defined ``activate`` will be called only after form
+    is valid. Once ``activate`` is called,it will be assumed to return a
+    two-tuple (``User``, ``None``) if activation was successful, or
+    (falsy_value, error_message) value if not.
 
     Upon successful activation, the backend's
     ``post_activation_redirect()`` method will be called, passing the
@@ -67,20 +70,22 @@ def activate(request, backend,
     
     The context will be populated from the keyword arguments captured
     in the URL, and any extra variables supplied in the
-    ``extra_context`` argument (see above).
+    ``extra_context`` argument (see above). In addition if a activation
+    form (see aboce again) is defined will be added ``form`` to context
+    containing current instance.
     
     **Template:**
     
     registration/activate.html or ``template_name`` keyword argument.
     
     """
-    backend = get_backend(backend)
+    backend = get_backend(backend, **kwargs)
     activation_form = backend.get_activation_form_class(request)
     if request.method == 'POST':
         form = activation_form and activation_form(data=request.POST,
                 files=request.FILES)
         kwargs['form'] = form
-        if form and form.is_valid():
+        if not form or form.is_valid():
             account, errors = backend.activate(request, **kwargs)
 
             if account:
@@ -110,7 +115,7 @@ def activate(request, backend,
 def register(request, backend, success_url=None, form_class=None,
              disallowed_url='registration_disallowed',
              template_name='registration/registration_form.html',
-             extra_context=None):
+             extra_context=None, **kwargs):
     """
     Allow a new user to register an account.
 
@@ -133,12 +138,12 @@ def register(request, backend, success_url=None, form_class=None,
     3. If valid, the form's ``cleaned_data`` will be passed (as
        keyword arguments, and along with the ``HttpRequest``) to the
        backend's ``register()`` method, which should return the new
-       ``User`` object.
+       ``RegistrationProfile`` object.
 
     4. Upon successful registration, the backend's
        ``post_registration_redirect()`` method will be called, passing
-       the ``HttpRequest`` and the new ``User``, to determine the URL
-       to redirect the user to. To override this, see the list of
+       the ``HttpRequest`` and the new ``RegistrationProfile``, to determine
+       the URL to redirect the user to. To override this, see the list of
        optional arguments for this view (below).
     
     **Required arguments**
@@ -190,7 +195,7 @@ def register(request, backend, success_url=None, form_class=None,
     argument.
     
     """
-    backend = get_backend(backend)
+    backend = get_backend(backend, **kwargs)
     if not backend.registration_allowed(request):
         return redirect(disallowed_url)
     if form_class is None:
@@ -201,7 +206,8 @@ def register(request, backend, success_url=None, form_class=None,
         if form.is_valid():
             new_profile = backend.register(request, **form.cleaned_data)
             if success_url is None:
-                to, args, kwargs = backend.post_registration_redirect(request, new_profile)
+                to, args, kwargs = backend.post_registration_redirect(request,
+                        new_profile)
                 return redirect(to, *args, **kwargs)
             else:
                 return redirect(success_url)

@@ -15,6 +15,12 @@ from django.utils.translation import ugettext_lazy as _
 attrs_dict = {'class': 'required'}
 
 class RegistrationForm(forms.Form):
+    """
+    Basic registration form class requiring only a valid email. This class
+    is not supposed to be used directly but subclasses implementing
+    ``clean_email`` method. There is no requirement on using this as base
+    class.
+    """
     email = forms.EmailField(widget=forms.TextInput(attrs=dict(attrs_dict,
                                                     maxlength=75)))
 
@@ -24,6 +30,13 @@ class RegistrationForm(forms.Form):
 
 
 class ActivationForm(forms.Form):
+    """
+    Basic activation form class requiring only a password. This class
+    is not supposed to be used directly but subclasses implementing
+    at least ``clean`` method (**note**: there is no check on password value,
+    unless you provide a clean_password1 method). There is no requirement on
+    using this as base class.
+    """
     password1 = forms.CharField(widget=forms.PasswordInput(attrs=attrs_dict,
         render_value=False), label=_("Password"))
     password2 = forms.CharField(widget=forms.PasswordInput(attrs=attrs_dict,

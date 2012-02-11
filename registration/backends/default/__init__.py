@@ -13,7 +13,7 @@ class DefaultBackend(object):
 
     2. Email is sent to user with activation link.
 
-    3. User clicks activation link -> get username/password ->
+    3. User clicks activation link -> an activation form is shown ->
         activate (based on pluggable callable on settings.ACTIVATION_METHOD)
 
     Using this backend requires that
@@ -43,19 +43,14 @@ class DefaultBackend(object):
     an instance of ``registration.models.RegistrationProfile``. See
     that model and its custom manager for full documentation of its
     fields and supported operations.
-    
     """
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
     def register(self, request, **kwargs):
         """
-        Given a username, email address and password, register a new
-        user account, which will initially be inactive.
-
-        Along with the new ``User`` object, a new
-        ``registration.models.RegistrationProfile`` will be created,
-        tied to that ``User``, containing the activation key which
+        Given an email address and password, register a new
+        ``RegistrationProfile``, containing the activation key which
         will be used for this account.
 
         An email will be sent to the supplied email address; this
@@ -64,13 +59,6 @@ class DefaultBackend(object):
         ``RegistrationProfile.send_activation_email()`` for
         information about these templates and the contexts provided to
         them.
-
-        After the ``User`` and ``RegistrationProfile`` are created and
-        the activation email is sent, the signal
-        ``registration.signals.user_registered`` will be sent, with
-        the new ``User`` as the keyword argument ``user`` and the
-        class of this backend as the sender.
-
         """
         if Site._meta.installed:
             site = Site.objects.get_current()
@@ -82,14 +70,13 @@ class DefaultBackend(object):
 
     def activate(self, request, activation_key, **kwargs):
         """
-        Given an an activation key, look up and activate the user
-        account corresponding to that key (if possible).
-
-        After successful activation, the signal
-        ``registration.signals.user_activated`` will be sent, with the
-        newly activated ``User`` as the keyword argument ``user`` and
-        the class of this backend as the sender.
+        Given an an activation key, the ``activate`` view request adn any
+        extra keyword, will call ``RegistrationManager.activate_user``
+        specifying a callback for user activation.
         
+        Returns:
+            ``RegistrationManager.activate_user`` result (see models for
+            further information).
         """
         return RegistrationProfile.objects.activate_user(activation_key,
                 request, callback=self.activation_method, **kwargs)

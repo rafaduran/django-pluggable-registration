@@ -34,7 +34,10 @@ def get_backend(path,
     **kwargs):
     """
     Return an instance of a registration backend, given the dotted
-    Python import path (as a string) to the backend class.
+    Python import path (as a string) to the backend class; in addition
+    'ACTIVATION_METHOD', 'REGISTRATION_FORM' and 'ACTIVATION_FORM' can be
+    specified. **kwargs in order to keep any other keyword argument, so
+    views can safely use their kwargs when getting a backend instance.
 
     If the backend cannot be located (e.g., because no such module
     exists, or because the module does not contain a class of the
@@ -43,7 +46,8 @@ def get_backend(path,
     
     """
     backend = get_object(path)
+    # Adding required settings to kwargs
     for setting in ('activation_method', 'registration_form',
             'activation_form'):
-        setting in kwargs or kwargs.__setitem__(setting, locals()[setting])
+        kwargs.__setitem__(setting, locals()[setting])
     return backend(**kwargs)

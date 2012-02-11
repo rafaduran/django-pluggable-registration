@@ -1,10 +1,7 @@
-import datetime
-
 from django.contrib import admin
 from django.contrib.sites.models import RequestSite
 from django.contrib.sites.models import Site
 from django.utils.translation import ugettext_lazy as _
-from django.conf import settings
 
 from registration.models import RegistrationProfile
 
@@ -23,9 +20,7 @@ class RegistrationAdmin(admin.ModelAdmin):
 
         Note that this will *only* send activation emails for users
         who are eligible to activate; emails will not be sent to users
-        whose activation keys have expired or who have already
-        activated.
-        
+        whose activation keys are invalid (expired or already activated).
         """
         if Site._meta.installed:
             site = Site.objects.get_current()
@@ -38,12 +33,21 @@ class RegistrationAdmin(admin.ModelAdmin):
     resend_activation_email.short_description = _("Re-send activation emails")
 
     def delete_expired(self, request, queryset):
+        """
+        Deletes expired registration profiles.
+        """
         RegistrationProfile.objects.delete_expired(queryset)
 
     def delete_activated(self, request, queryset):
+        """
+        Deletes already activated registration profiles.
+        """
         RegistrationProfile.objects.delete_activated(queryset)
 
     def clean(self, request, queryset):
+        """
+        Deletes both, expired and already activated registration profiles.
+        """
         self.delete_expired(request, queryset)
         self.delete_activated(request, queryset)
 
