@@ -22,7 +22,7 @@ class RegistrationManager(models.Manager):
     keys), and for cleaning out expired/already activated profiles.
     
     """
-    def activate_user(self, activation_key, request, callback, **kwargs):
+    def activate_user(self, request, activation_key, callback, **kwargs):
         """
         Validate an activation key and calls ``callback`` in order to activate
         the corresponding user if valid. ``callback`` default value is a

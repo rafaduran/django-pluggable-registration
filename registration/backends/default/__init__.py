@@ -68,9 +68,9 @@ class DefaultBackend(object):
                 kwargs['email'])
         return new_profile
 
-    def activate(self, request, activation_key, **kwargs):
+    def activate(self, request, **kwargs):
         """
-        Given an an activation key, the ``activate`` view request adn any
+        Given an an activation key, the ``activate`` view request and any
         extra keyword, will call ``RegistrationManager.activate_user``
         specifying a callback for user activation.
         
@@ -78,7 +78,7 @@ class DefaultBackend(object):
             ``RegistrationManager.activate_user`` result (see models for
             further information).
         """
-        return RegistrationProfile.objects.activate_user(activation_key,
+        return RegistrationProfile.objects.activate_user(
                 request, callback=self.activation_method, **kwargs)
 
     def registration_allowed(self, request):
