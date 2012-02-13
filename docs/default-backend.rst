@@ -29,11 +29,28 @@ This backend makes use of the following settings:
     is optional, and a default of ``True`` will be assumed if it is
     not supplied.
 
-By default, this backend uses
-:class:`registration.forms.RegistrationForm` as its form class for
-user registration; this can be overridden by passing the keyword
-argument ``form_class`` to the :func:`~registration.views.register`
-view.
+``ACTIVATION_METHOD``
+    A string representing a dotted Python import path to a callable object
+    that will be passed as a ``callback`` argument to
+    :meth:`~registration.models.RegistrationManager.activate_user`, which call
+    it after checking and marking as already activated the
+    :class:`~registration.models.RegistrationProfile` object corresponding to the
+    given ``activation_key``. This can be overriden by passing the keyword
+    argument ``activation_method`` to the :func:`~registration.views.activate`.
+
+``REGISTRATION_FORM``
+    A string representing a dotted Python import path to a an object that must
+    be a subclass of :class:`~django.forms.Form`. This form its form class for
+    user registration; this can be overridden by passing the keyword
+    argument ``form_class`` to the :func:`~registration.views.register`
+    view.
+
+``ACTIVATION_FORM``
+    A string representing a dotted Python import path to an object that must
+    be a subclass of :class:`~django.forms.Form`. This form its form class for
+    user registration; this can be overridden by passing the keyword
+    argument ``form_class`` to the :func:`~registration.views.activate`
+    view.
 
 Upon successful registration -- not activation -- the default redirect
 is to the URL pattern named ``registration_complete``; this can be
@@ -50,16 +67,10 @@ How account data is stored for activation
 -----------------------------------------
 
 During registration, a new instance of
-``django.contrib.auth.models.User`` is created to represent the new
-account, with the ``is_active`` field set to ``False``. An email is
-then sent to the email address of the account, containing a link the
-user must click to activate the account; at that point the
-``is_active`` field is set to ``True``, and the user may log in
-normally.
-
-Activation is handled by generating and storing an activation key in
-the database, using the following model:
-
+``registration.models.RegistrationProfile`` (see below) created to keep the
+email of the new account. An email is then sent to the given email address,
+containing a link the user must click to activate the account; at that point
+the user must be created and/or activated via the given ``activation_method``.
 
 .. currentmodule:: registration.models
 
@@ -72,11 +83,9 @@ the database, using the following model:
 
    Has the following fields:
 
-   .. attribute:: user
+   .. attribute:: email
 
-      A ``ForeignKey`` to ``django.contrib.auth.models.User``,
-      representing the user account for which activation information
-      is being stored.
+      A string representing user's email.
 
    .. attribute:: activation_key
 
@@ -93,7 +102,7 @@ the database, using the following model:
 
    And the following methods:
 
-   .. method:: activation_key_expired()
+   .. method:: activation_key_invalid()
 
       Determines whether this account's activation key has expired,
       and returns a boolean (``True`` if expired, ``False``
@@ -101,19 +110,33 @@ the database, using the following model:
 
       1. If :attr:`activation_key` is :attr:`ACTIVATED`, the account
          has already been activated and so the key is considered to
-         have expired.
+         have expired. This test is performed by 
+         :meth:`activation_key_expired`.
 
       2. Otherwise, the date of registration (obtained from the
          ``date_joined`` field of :attr:`user`) is compared to the
          current date; if the span between them is greater than the
          value of the setting ``ACCOUNT_ACTIVATION_DAYS``, the key is
-         considered to have expired.
+         considered to have expired. This test is performed by
+         :meth:`activation_key_already_activated`.
+
+      :rtype: bool
+
+   .. method:: activation_key_already_activated()
+      
+      See :meth:`activation_key_invalid` for further information.
+
+      :rtype: bool
+
+   .. method:: activation_key_expired()
+
+      See :meth:`activation_key_invalid` for further information.
 
       :rtype: bool
 
    .. method:: send_activation_email(site)
 
-      Sends an activation email to the address of the account.
+      Sends an activation email to the email address :attr:`email`.
 
       The activation email will make use of two templates:
       ``registration/activation_email_subject.txt`` and
@@ -163,77 +186,91 @@ Additionally, :class:`RegistrationProfile` has a custom manager
    .. method:: activate_user(activation_key)
 
       Validates ``activation_key`` and, if valid, activates the
-      associated account by setting its ``is_active`` field to
-      ``True``. To prevent re-activation of accounts, the
+      ``callback`` callable parameter is called, performing it the
+      actions needed in order to get the new user account created and/or
+      activated.field. To prevent re-activation of accounts, the
       :attr:`~RegistrationProfile.activation_key` of the
       :class:`RegistrationProfile` for the account will be set to
       :attr:`RegistrationProfile.ACTIVATED` after successful
       activation.
 
-      Returns the ``User`` instance representing the account if
-      activation is successful, ``False`` otherwise.
+      Returns a two-tuple containing:
+      
+      1. On success returns ``callback`` result:
+      
+         ``User``: object representing the new user account.
+         
+         ``error_message``: on success this attribute will be
+         ignored, however for convenience it should be ``None``.
+
+      2. On failure:
+
+         ``falsy_value``: any value that evaluates to ``False``
+         on boolean context.
+
+         ``error_message``: a string contatining the error message
+         to be displayed.
 
       :param activation_key: The activation key to use for the
          activation.
       :type activation_key: string, a 40-character SHA1 hexdigest
-      :rtype: ``User`` or bool
+      :param callback: The callable actually performing the activation.
+      :type callback: callable
+      :param \*\*kwargs: Extra keyword arguments for ``callback``.
+      :type \*\*kwargs: ``dict``
+      :rtype: ``tuple``
 
-   .. method:: delete_expired_users
+   .. method:: delete_expired(queryset=None)
 
-      Removes expired instances of :class:`RegistrationProfile`, and
-      their associated user accounts, from the database. This is
-      useful as a periodic maintenance task to clean out accounts
-      which registered but never activated.
+      Removes expired instances of :class:`RegistrationProfile` from the
+      database. This is useful as a periodic maintenance task to clean
+      out profiles which registered but never activated.
 
-      Accounts to be deleted are identified by searching for instances
-      of :class:`RegistrationProfile` with expired activation keys and
-      with associated user accounts which are inactive (have their
-      ``is_active`` field set to ``False``). To disable a user account
-      without having it deleted, simply delete its associated
-      :class:`RegistrationProfile`; any ``User`` which does not have
-      an associated :class:`RegistrationProfile` will not be deleted.
+      Profiles to be deleted are identified by searching for instances
+      of :class:`RegistrationProfile` on the given queryset with expired
+      activation keys. If no queryset is provided then all objects will
+      be tested.
 
-      A custom management command is provided which will execute this
-      method, suitable for use in cron jobs or other scheduled
-      maintenance tasks: ``manage.py cleanupregistration``.
-
+      :param queryset: A queryset containing :class:`RegistrationProfile`
+         objects to be tested for deletion.
+      :type queryset: :class:`django.db.models.query.QuerySet`
       :rtype: ``None``
 
-   .. method:: create_inactive_user(username, email, password, site[, send_email])
+   .. method:: delete_activated(queryset=None)
 
-      Creates a new, inactive user account and an associated instance
-      of :class:`RegistrationProfile`, sends the activation email and
-      returns the new ``User`` object representing the account.
+      Removes already activated instances of :class:`RegistrationProfile` from
+      the database. This is useful as a periodic maintenance task to clean
+      out activated profiles.
 
-      :param username: The username to use for the new account.
-      :type username: string
-      :param email: The email address to use for the new account.
-      :type email: string
-      :param password: The password to use for the new account.
-      :type password: string
-      :param site: An object representing the site on which the
-         account is being registered.
-      :type site: ``django.contrib.sites.models.Site`` or
-         ``django.contrib.sites.models.RequestSite``
-      :param send_email: If ``True``, the activation email will be
-         sent to the account (by calling
-         :meth:`RegistrationProfile.send_activation_email`). If
-         ``False``, no email will be sent (but the account will still
-         be inactive)
-      :type send_email: bool
-      :rtype: ``User``
+      Profiles to be deleted are identified by searching for instances
+      of :class:`RegistrationProfile` on the given queryset activated
+      activation keys. If no queryset is provided then all objects will
+      be tested.
 
-   .. method:: create_profile(user)
+      :param queryset: A queryset containing :class:`RegistrationProfile`
+         objects to be tested for deletion.
+      :type queryset: :class:`django.db.models.query.QuerySet`
+      :rtype: ``None``
+
+   .. method:: create_profile(site, email, send_email=True)
 
       Creates and returns a :class:`RegistrationProfile` instance for
-      the account represented by ``user``.
+      the given ``email``.
 
-      The ``RegistrationProfile`` created by this method will have its
+      The :class:`RegistrationProfile` created by this method will have its
       :attr:`~RegistrationProfile.activation_key` set to a SHA1 hash
-      generated from a combination of the account's username and a
-      random salt.
+      generated from a combination of the ``email`` and a random salt.
 
-      :param user: The user account; an instance of
-         ``django.contrib.auth.models.User``.
-      :type user: ``User``
-      :rtype: ``RegistrationProfile``
+      If ``send_email`` is ``True`` (default value) an email will be sent
+      to the address ``email`` via :meth:`send_email`.
+
+      :param site: An object representing the site on which account
+         was registered.
+      :type site: ``django.contrib.sites.models.Site`` or
+        ``django.contrib.sites.models.RequestSite``
+      :param email: An string representing the new user email address.
+      :type email: ``string``
+      :param send_email: Boolean object indicating wether an email should be
+         sent.
+      :type send_email: bool
+      :rtype: :class:`RegistrationProfile`

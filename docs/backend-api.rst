@@ -3,7 +3,7 @@
 User registration backends
 ==========================
 
-At its core, django-registration is built around the idea of pluggable
+At its core, django-pluggable-registration is built around the idea of pluggable
 backends which can implement different workflows for user
 registration. Although :ref:`the default backend <default-backend>`
 uses a common two-phase system (registration followed by activation),
@@ -52,9 +52,10 @@ the default backend, you'd pass the string
 ``'registration.backends.default.DefaultBackend'`` as the value of the
 ``backend`` argument (and the default URLconf included with that
 backend does so). The specified backend class will then be imported
-and instantiated (by calling its constructor with no arguments), and
-the resulting instance will be used for all backend-specific
-functionality.
+and instantiated by calling its constructor with the \*\*kwargs on
+`views in django-registration <views>`, thus you can pass any argument
+you need just overriding URLconf, and the resulting instance will be used
+for all backend-specific functionality.
 
 If the specified backend class cannot be imported, django-registration
 will raise ``django.core.exceptions.ImproperlyConfigured``.
@@ -73,10 +74,8 @@ a full implementation is needed.
 register(request, \*\*kwargs)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This method implements the logic of actually creating the new user
-account. Often, but not necessarily always, this will involve creating
-an instance of ``django.contrib.auth.models.User`` from the supplied
-data.
+This method implements the logic of actually creating a new registration
+profile for the given email.
 
 This method will only be called after a signup form has been
 displayed, and the data collected by the form has been properly
@@ -92,28 +91,16 @@ Arguments to this method are:
 ``**kwargs``
     A dictionary of the ``cleaned_data`` from the signup form.
 
-After creating the new user account, this method should create or
-obtain an instance of ``django.contrib.auth.models.User`` representing
-that account. It should then send the signal
-:data:`registration.signals.user_registered`, with three arguments:
-
-``sender``
-    The backend class (e.g., ``self.__class__``).
-
-``user``
-    The ``User`` instance representing the new account.
-
-``request``
-    The ``HttpRequest`` in which the user registered.
-
-Finally, this method should return the ``User`` instance.
+After creating the new registration profile, this method should return a
+``RegistrationProfile`` instance.
 
 
-activate(request, \*\*kwargs)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+activate(request, activation_key, \*\*kwargs)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For workflows which require a separate activation step, this method
-should implement the necessary logic for account activation.
+should implement the necessary logic for account creation and/or
+activation.
 
 Arguments to this method are:
 
@@ -126,27 +113,18 @@ Arguments to this method are:
     captured from the URL, such as an activation key) received by the
     :func:`~registration.views.activate` view. The combination of the
     ``HttpRequest`` and this additional information must be sufficient
-    to identify the account which will be activated.
+    to create the new account.
 
 If the account cannot be successfully activated (for example, in the
 default backend if the activation period has expired), this method
-should return ``False``.
+should return two-tuple containing (``falsy_value``, ``error_message``),
+where ``falsy_value`` is any value that evaluates to ``False`` in
+boolean context.
 
-If the account is successfully activated, this method should create or
-obtain an instance of ``django.contrib.auth.models.User`` representing
-the activated account. It should then send the signal
-:data:`registration.signals.user_activated`, with three arguments:
-
-``sender``
-    The backend class.
-
-``user``
-    The ``User`` instance representing the activated account.
-
-``request``
-    The ``HttpRequest`` in which the user activated.
-
-This method should then return the ``User`` instance.
+If the account is successfully created/activated, this method should return
+a two-tuple (``truly_value``, ``whatever``), where ``truly_value`` is an object
+that evaluates to ``True`` on boolean context and represents the activated
+account; second value in this case.
 
 For workflows which do not require a separate activation step, this
 method can and should raise ``NotImplementedError``.
@@ -189,6 +167,20 @@ Arguments to this method are:
     The Django ``HttpRequest`` object in which a new user is
     attempting to register.
 
+get_activation_form_class(request)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This method should return a form class -- a subclass of
+``django.forms.Form`` -- suitable for use in activating users with
+this backend. As such, it should collect and validate any information
+required by the backend's ``activate`` method.
+
+Arguments to this method are:
+
+``request``
+    The Django ``HttpRequest`` object in which a new user is
+    attempting to activate.
+
 
 post_registration_redirect(request, user)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -224,7 +216,7 @@ Arguments to this method are:
     The Django ``HttpRequest`` object in which the user activated.
 
 ``user``
-    The ``User`` instance representing the activated user account.
+    An object instance representing the activated user account.
 
 For workflows which do not require a separate activation step, this
 method can and should raise ``NotImplementedError``.
