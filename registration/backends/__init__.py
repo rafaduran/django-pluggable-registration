@@ -13,6 +13,8 @@ def get_object(path):
     Helper method in order to import an object, given the dotted Python
     path (as a string).
     """
+    if path is None:
+        return None
     i = path.rfind('.')
     module, attr = path[:i], path[i+1:]
     try:
@@ -27,27 +29,32 @@ def get_object(path):
             " backend '%s'".format(module, attr))
     return obj
 
-def get_backend(path,
-    activation_method=get_object(getattr(settings, 'ACTIVATION_METHOD', None)),
-    registration_form=get_object(getattr(settings, 'REGISTRATION_FORM', None)),
-    activation_form=get_object(getattr(settings, 'ACTIVATION_FORM', None)),
-    **kwargs):
+def get_backend(path, **kwargs):
     """
     Return an instance of a registration backend, given the dotted
     Python import path (as a string) to the backend class; in addition
-    'ACTIVATION_METHOD', 'REGISTRATION_FORM' and 'ACTIVATION_FORM' can be
-    specified. **kwargs in order to keep any other keyword argument, so
-    views can safely use their kwargs when getting a backend instance.
+    ``activation_method`` must be passed into ``kwargs`` or gotten from
+    'ACTIVATION_METHOD' setting, otherwise
+    ``django.core.exceptions.ImproperlyConfigured`` is raised.
+    'REGISTRATION_FORM' and 'ACTIVATION_FORM' are gotten from
+    settings and if defined, taking ``None`` by default. Finally **kwargs
+    is specified in order to be able to pass any information to the given
+    backend.
 
     If the backend cannot be located (e.g., because no such module
     exists, or because the module does not contain a class of the
     appropriate name), ``django.core.exceptions.ImproperlyConfigured``
     is raised.
-    
     """
     backend = get_object(path)
+    try:
+        activation_method = kwargs.get('activation_method', None) or\
+            get_object(getattr(settings, 'ACTIVATION_METHOD'))
+    except AttributeError:
+        raise ImproperlyConfigured("You didn't provide an 'ACTIVATION_METHOD'")
+    registration_form=get_object(getattr(settings, 'REGISTRATION_FORM', None))
+    activation_form=get_object(getattr(settings, 'ACTIVATION_FORM', None))
     # Adding required settings to kwargs
-    for setting in ('activation_method', 'registration_form',
-            'activation_form'):
-        kwargs.__setitem__(setting, locals()[setting])
+    kwargs.update({'activation_method': activation_method, 'registration_form':
+        registration_form, 'activation_form': activation_form})
     return backend(**kwargs)

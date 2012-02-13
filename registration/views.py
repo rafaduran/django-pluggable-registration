@@ -14,7 +14,7 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
-def activate(request, backend,
+def activate(request, backend, form_class=None,
              template_name='registration/activate.html',
              success_url=None, extra_context=None, **kwargs):
     """
@@ -45,6 +45,9 @@ def activate(request, backend,
     ``backend``
         The dotted Python import path to the backend class to
         use. Required.
+
+    ``form_class``
+        The activation form class.
 
     ``extra_context``
         A dictionary of variables to add to the template context. Any
@@ -80,7 +83,8 @@ def activate(request, backend,
     
     """
     backend = get_backend(backend, **kwargs)
-    activation_form = backend.get_activation_form_class(request)
+    if form_class is None:
+        activation_form = backend.get_activation_form_class(request)
     if request.method == 'POST':
         form = activation_form and activation_form(data=request.POST,
                 files=request.FILES)
