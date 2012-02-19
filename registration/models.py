@@ -58,10 +58,11 @@ class RegistrationManager(models.Manager):
             except self.model.DoesNotExist:
                 return False, _('Your activation key is not valid')
             if not profile.activation_key_invalid():
-                # TODO: should I update activation_key on succesful activation?
-                profile.activation_key = self.model.ACTIVATED
-                profile.save()
-                return callback(request, profile, **kwargs)
+                account, errors = callback(request, profile, **kwargs)
+                if account:
+                    profile.activation_key = self.model.ACTIVATED
+                    profile.save()
+                return account, errors
         return False, _('Your activation key is not valid')
 
     def create_profile(self, site, email, send_email=True):

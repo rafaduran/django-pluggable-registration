@@ -14,7 +14,7 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
-def activate(request, backend, form_class=None,
+def activate(request, backend, form_class=None, activation_method=None,
              template_name='registration/activate.html',
              success_url=None, extra_context=None, **kwargs):
     """
@@ -49,6 +49,10 @@ def activate(request, backend, form_class=None,
     ``form_class``
         The activation form class.
 
+    ``activation_method``
+        The callback actually performing the activation. Default value is
+        ``None``, so it will be taken from ``ACTIVATION_METHOD`` setting.
+
     ``extra_context``
         A dictionary of variables to add to the template context. Any
         callable object in this dictionary will be called to produce
@@ -82,7 +86,8 @@ def activate(request, backend, form_class=None,
     registration/activate.html or ``template_name`` keyword argument.
     
     """
-    backend = get_backend(backend, **kwargs)
+    backend = get_backend(backend, activation_method=activation_method,
+            **kwargs)
     if form_class is None:
         activation_form = backend.get_activation_form_class(request)
     if request.method == 'POST':
