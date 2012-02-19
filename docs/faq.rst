@@ -29,12 +29,9 @@ General
     ``registration.backends.default``, but there are several reasons
     why that's not such a good idea:
 
-    1. Older versions of django-registration made use of the model and
-       form classes, and moving them would create an unnecessary
-       backwards incompatibility: ``import`` statements would need to
-       be changed, and some database updates would be needed to
-       reflect the new location of the
-       :class:`~registration.models.RegistrationProfile` model.
+    1. :class:`~registration.models.RegistrationProfile` model keeps the
+       minimun information possible, so it's inteded to work for all
+       (or almost) situations.
 
     2. Due to the design of Django's ORM, the ``RegistrationProfile``
        model would end up with an ``app_label`` of ``default``, which
@@ -47,17 +44,13 @@ General
     3. Although the ``RegistrationProfile`` model and the various
        :ref:`form classes <forms>` are used by the default backend,
        they can and are meant to be reused as needed by other
-       backends. Any backend which uses an activation step should feel
-       free to reuse the ``RegistrationProfile`` model, for example,
-       and the registration form classes are in no way tied to a
-       specific backend (and cover a number of common use cases which
-       will crop up regardless of the specific backend logic in use).
+       backend.
 
 
 Installation and setup
 ----------------------
 
-**How do I install django-registration?**
+**How do I install django-pluggable-registration?**
     Full instructions are available in :ref:`the quick start guide <quickstart>`.
 
 **Do I need to put a copy of django-registration in every project I use it in?**
@@ -91,6 +84,30 @@ Installation and setup
     template system to create templates which integrate with their own
     site.
 
+**Which are the differences with django-registration?**
+    There are two main differences:
+
+    1. django-plugglable-registration **default workflow** quite different.
+       Initially user need just provide an email to start registration and
+       any other needed information will be taken on activation step; so we
+       could say is a creation step. However you can customize this behavior
+       getting a more django-registration like workflow.
+
+    2. This is intended to be **backend free**, so just need **plug** your
+       activation method/forms, allowing much more flexibility without the
+       need of writing a custom backend (even you can still write it).
+
+    3. django-pluggable-registration it's also **model free**, so default
+       workflow only needs it's own :class:`~registration.RegistrationProfile`
+       and it doesn't depends on :class:`django.contrib.auth.models.User` as
+       django-registration default backend does. This may be extremly useful if
+       you don't use built-in Django authentication.
+
+    So almost any differnce is intended to cover where django-registration default
+    behavior doesn't fit your needs but you don't want/need write a new backend. If
+    are going to use built-in Django authentication or need writing a new backend
+    you should stay on django-registration.
+
 
 Configuration
 -------------
@@ -101,9 +118,6 @@ Configuration
 
     * Pass custom arguments -- e.g., to specify forms, template names,
       etc. -- to :ref:`the registration views <views>`.
-
-    * Use the :ref:`signals <signals>` sent by the views to add custom
-      behavior.
 
     * Write a custom :ref:`registration backend <backend-api>` which
       implements the behavior you need, and have the views use your
@@ -121,10 +135,10 @@ Configuration
     covers the necessary mechanism: simply provide a dictionary of
     keyword arguments in your URLconf.
 
-**Does that mean I should rewrite django-registration's default URLconf?**
+**Does that mean I should rewrite django-pluggable-registration's default URLconf?**
     No; if you'd like to pass custom arguments to the registration
     views, simply write and include your own URLconf instead of
-    including the default one provided with django-registration.
+    including the default one provided with django-pluggable-registration.
 
 **I don't want to write my own URLconf because I don't want to write patterns for all the auth views!**
     You're in luck, then; django-registration provides a URLconf which
@@ -137,47 +151,8 @@ Configuration
     which uses the names you want.
 
 
-Troubleshooting
----------------
-
-**I've got functions listening for the registration/activation signals, but they're not getting called!**
-
-    The most common cause of this is placing django-registration in a
-    sub-directory that's on your Python import path, rather than
-    installing it directly onto the import path as normal. Importing
-    from django-registration in that case can cause various issues,
-    including incorrectly connecting signal handlers. For example, if
-    you were to place django-registration inside a directory named
-    ``django_apps``, and refer to it in that manner, you would end up
-    with a situation where your code does this::
-
-        from django_apps.registration.signals import user_registered
-
-    But django-registration will be doing::
-
-        from registration.signals import user_registered
-
-    From Python's point of view, these import statements refer to two
-    different objects in two different modules, and so signal handlers
-    connected to the signal from the first import will not be called
-    when the signal is sent using the second import.
-
-    To avoid this problem, follow the standard practice of installing
-    django-registration directly on your import path and always
-    referring to it by its own module name: ``registration`` (and in
-    general, it is always a good idea to follow normal Python
-    practices for installing and using Django applications).
-
-
 Tips and tricks
 ---------------
-
-**How do I log a user in immediately after registration or activation?**
-    You can most likely do this simply by writing a function which
-    listens for the appropriate :ref:`signal <signals>`; your function
-    should set the ``backend`` attribute of the user to the correct
-    authentication backend, and then call
-    ``django.contrib.auth.login()`` to log the user in.
 
 **How do I re-send an activation email?**
     Assuming you're using :ref:`the default backend
@@ -187,9 +162,3 @@ Tips and tricks
     :class:`~registration.models.RegistrationProfile` model, simply
     click the checkbox for the user(s) you'd like to re-send the email
     for, then select the "Re-send activation emails" action.
-
-**How do I manually activate a user?**
-    In the default backend, a custom admin action is provided for
-    this. In the admin for the ``RegistrationProfile`` model, click
-    the checkbox for the user(s) you'd like to activate, then select
-    the "Activate users" action.

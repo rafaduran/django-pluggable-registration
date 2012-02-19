@@ -3,7 +3,7 @@
 Quick start guide
 =================
 
-Before installing django-registration, you'll need to have a copy of
+Before installing django-pluggable-registration, you'll need to have a copy of
 `Django <http://www.djangoproject.com>`_ already installed. For the
 |version| release, Django 1.1 or newer is required.
 
@@ -12,17 +12,12 @@ For further information, consult the `Django download page
 packaged downloads and installation instructions.
 
 
-Installing django-registration
-------------------------------
+Installing django-pluggable-registration
+----------------------------------------
 
-There are several ways to install django-registration:
-
-* Automatically, via a package manager.
-
-* Manually, by downloading a copy of the release package and
-  installing it yourself.
-
-* Manually, by performing a Mercurial checkout of the latest code.
+At the time of this writing, django-pluggable-registration cab be installed
+obly via `GitHub repository
+<https://github.com/rafaduran/django-pluggable-registration>`_.
 
 It is also highly recommended that you learn to use `virtualenv
 <http://pypi.python.org/pypi/virtualenv>`_ for development and
@@ -38,49 +33,22 @@ packages.
 Automatic installation via a package manager
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Several automatic package-installation tools are available for Python;
-the most popular are `easy_install
-<http://peak.telecommunity.com/DevCenter/EasyInstall>`_ and `pip
-<http://pip.openplans.org/>`_. Either can be used to install
-django-registration.
-
-Using ``easy_install``, type::
-
-    easy_install -Z django-registration
-
-Note that the ``-Z`` flag is required, to tell ``easy_install`` not to
-create a zipped package; zipped packages prevent certain features of
-Django from working properly.
-
 Using ``pip``, type::
 
-    pip install django-registration
-
-It is also possible that your operating system distributor provides a
-packaged version of django-registration (for example, `Debian
-GNU/Linux <http://debian.org/>`_ provides a package, installable via
-``apt-get-install python-django-registration``). Consult your
-operating system's package list for details, but be aware that
-third-party distributions may be providing older versions of
-django-registration, and so you should consult the documentation which
-comes with your operating system's package.
+    pip install -e https://github.com/rafaduran/django-plugglabe-registration#egg=django-pluggable-registration
 
 
 Manual installation from a downloaded package
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you prefer not to use an automated package installer, you can
-download a copy of django-registration and install it manually. The
-latest release package can be downloaded from `django-registration's
-listing on the Python Package Index
-<http://pypi.python.org/pypi/django-registration/>`_.
+download a copy of django-pluggable-registration and install it manually. The
+latest release package can be downloaded from `django-pluggable-registration's
+repository <https://github.com/rafaduran/django-pluggable-registration/tree/
+master/tarball>`_.
 
-Once you've downloaded the package, unpack it (on most operating
-systems, simply double-click; alternately, type ``tar zxvf
-django-registration-0.8.tar.gz`` at a command line on Linux, Mac OS X
-or other Unix-like systems). This will create the directory
-``django-registration-0.8``, which contains the ``setup.py``
-installation script. From a command line in that directory, type::
+Once you've downloaded the package, unpack it and then you can use the included
+``setup.py`` installation script. From a command line type::
 
     python setup.py install
 
@@ -88,55 +56,31 @@ Note that on some systems you may need to execute this with
 administrative privileges (e.g., ``sudo python setup.py install``).
 
 
-Manual installation from a Mercurial checkout
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you'd like to try out the latest in-development code, you can
-obtain it from the django-registration repository, which is hosted at
-`Bitbucket <http://bitbucket.org/>`_ and uses `Mercurial
-<http://www.selenic.com/mercurial/wiki/>`_ for version control. To
-obtain the latest code and documentation, you'll need to have
-Mercurial installed, at which point you can type::
-
-    hg clone http://bitbucket.org/ubernostrum/django-registration/
-
-You can also obtain a copy of a particular release of
-django-registration by specifying the ``-r`` argument to ``hg clone``;
-each release is given a tag of the form ``vX.Y``, where "X.Y" is the
-release number. So, for example, to check out a copy of the 0.8
-release, type::
-
-    hg clone -r v0.8 http://bitbucket.org/ubernostrum/django-registration/
-
-In either case, this will create a copy of the django-registration
-Mercurial repository on your computer; you can then add the
-``django-registration`` directory inside the checkout your Python
-import path, or use the ``setup.py`` script to install as a package.
-
-
 Basic configuration and use
 ---------------------------
 
-Once installed, you can add django-registration to any Django-based
-project you're developing. The default setup will enable user
-registration with the following workflow:
+Once installed, you can add django-pluggable-registration to any Django-based
+project you're developing. The default setup will enable user registration
+with the following workflow:
 
-1. A user signs up for an account by supplying a username, email
-   address and password.
+1. A user signs up for an account by supplying an email.
 
-2. From this information, a new ``User`` object is created, with its
-   ``is_active`` field set to ``False``. Additionally, an activation
-   key is generated and stored, and an email is sent to the user
-   containing a link to click to activate the account.
+2. An activation key is generated, associated to the given email and stored,
+   and an email is sent to the user containing a link to click to activate
+   the account.
 
-3. Upon clicking the activation link, the new account is made active
-   (the ``is_active`` field is set to ``True``); after this, the user
-   can log in.
+3. Upon clicking the activation link, a form is diplayed, asking all extra
+   required information for the new account is create.
 
-Note that the default workflow requires ``django.contrib.auth`` to be
-installed, and it is recommended that ``django.contrib.sites`` be
-installed as well. You will also need to have a working mail server
-(for sending activation emails), and provide Django with the necessary
+4. Once form is properly validated an ``activation_method`` callback will
+   perform any required action.
+
+5. On succes activation user will be redirected to
+   ``registration_activation_complete`` url.
+
+Note that while using the default backend it is recommended that
+``django.contrib.sites`` be installed. You will also need to have a working mail
+server (for sending activation emails), and provide Django with the necessary
 settings to make use of this mail server (consult `Django's
 email-sending documentation
 <http://docs.djangoproject.com/en/dev/topics/email/>`_ for details).
@@ -146,7 +90,7 @@ Required settings
 ~~~~~~~~~~~~~~~~~
 
 Begin by adding ``registration`` to the ``INSTALLED_APPS`` setting of
-your project, and specifying one additional setting:
+your project, and specifying one required additional setting:
 
 ``ACCOUNT_ACTIVATION_DAYS``
     This is the number of days users will have to activate their
@@ -154,17 +98,32 @@ your project, and specifying one additional setting:
     that period, the account will remain permanently inactive and may
     be deleted by maintenance scripts provided in django-registration.
 
+As optional settings you can also provide:
+
+``ACTIVATION_METHOD``
+   This is the callable callback performing any required action for
+   the account creation.
+
+``REGISTRATION_FORM``
+   First form displayed, usually getting just the user email.
+
+``ACTIVATION_FORM``
+   Second form displayed, getting any extra required information, usually
+   at least a password.
+
 For example, you might have something like the following in your
 Django settings file::
 
     INSTALLED_APPS = (
-        'django.contrib.auth',
         'django.contrib.sites',
         'registration',
         # ...other installed applications...
     )
     
     ACCOUNT_ACTIVATION_DAYS = 7 # One-week activation window; you may, of course, use a different value.
+    ACTIVATIOM_METHOD = 'exampleapp.activation.activate' # Dotted string path
+    REGISTRATION_FORM = 'exampleapp.forms.ExampleRegistrationForm'
+    ACTIVATION_FORM = 'exampleapp.forms.ExampleActivationForm'
 
 Once you've done this, run ``manage.py syncdb`` to install the model
 used by the default setup.
@@ -175,9 +134,7 @@ Setting up URLs
 
 The :ref:`default backend <default-backend>` includes a Django
 ``URLconf`` which sets up URL patterns for :ref:`the views in
-django-registration <views>`, as well as several useful views in
-``django.contrib.auth`` (e.g., login, logout, password
-change/reset). This ``URLconf`` can be found at
+django-registration <views>`. This ``URLconf`` can be found at
 ``registration.backends.default.urls``, and so can simply be included
 in your project's root URL configuration. For example, to place the
 URLs under the prefix ``/accounts/``, you could add the following to
@@ -186,16 +143,14 @@ your project's root ``URLconf``::
     (r'^accounts/', include('registration.backends.default.urls')),
 
 Users would then be able to register by visiting the URL
-``/accounts/register/``, login (once activated) at
-``/accounts/login/``, etc.
+``/accounts/register/``
 
 
 Required templates
 ~~~~~~~~~~~~~~~~~~
 
 In the default setup, you will need to create several templates
-required by django-registration, and possibly additional templates
-required by views in ``django.contrib.auth``. The templates requires
+required by django-registration. The templates requires
 by django-registration are as follows; note that, with the exception
 of the templates used for account activation emails, all of these are
 rendered using a ``RequestContext`` and so will also receive any
@@ -222,16 +177,23 @@ been sent.
 
 **registration/activate.html**
 
-Used if account activation fails. With the default setup, has the following context:
+Displaying the activation form (if defined). With the default setup, has the
+following context:
 
 ``activation_key``
     The activation key used during the activation attempt.
+
+``form``
+   The activation form. This will be an instance of some subclass of
+    ``django.forms.Form``; consult `Django's forms documentation
+    <http://docs.djangoproject.com/en/dev/topics/forms/>`_ for
+    information on how to display this in a template.
 
 **registration/activation_complete.html**
 
 Used after successful account activation. This template has no context
 variables of its own, and should simply inform the user that their
-account is now active.
+account has been created.
 
 **registration/activation_email_subject.txt**
 
@@ -280,15 +242,19 @@ following context:
     <http://docs.djangoproject.com/en/dev/ref/contrib/sites/>`_ for
     details regarding these objects' interfaces.
 
+
 Note that the templates used to generate the account activation email
 use the extension ``.txt``, not ``.html``. Due to widespread antipathy
 toward and interoperability problems with HTML email,
 django-registration defaults to plain-text email, and so these
 templates should simply output plain text rather than HTML.
 
-To make use of the views from ``django.contrib.auth`` (which are set
-up for you by the default URLconf mentioned above), you will also need
-to create the templates required by those views. Consult `the
-documentation for Django's authentication system
-<http://docs.djangoproject.com/en/dev/topics/auth/#django.contrib.auth.views.login>`_
-for details regarding these templates.
+
+The ``example`` project
+_______________________
+
+The repository includes a working example project. **Note** this project is
+using ``django.contrib.auth`` just for convenience, since
+django-pluggable-registration as a shortcut for applications not fitting the
+django-registration default workflow, specially applications not using the
+``django.contrib.auth``.

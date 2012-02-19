@@ -35,22 +35,23 @@ This backend makes use of the following settings:
     :meth:`~registration.models.RegistrationManager.activate_user`, which call
     it after checking and marking as already activated the
     :class:`~registration.models.RegistrationProfile` object corresponding to the
-    given ``activation_key``. This can be overriden by passing the keyword
-    argument ``activation_method`` to the :func:`~registration.views.activate`.
+    given ``activation_key``. This parameter is optional since it can be overriden
+    by passing the keyword argument ``activation_method`` to the
+    :func:`~registration.views.activate`.
 
 ``REGISTRATION_FORM``
     A string representing a dotted Python import path to a an object that must
-    be a subclass of :class:`~django.forms.Form`. This form its form class for
-    user registration; this can be overridden by passing the keyword
-    argument ``form_class`` to the :func:`~registration.views.register`
-    view.
+    be a subclass of :class:`~django.forms.Form` and it will be used as  form
+    class for user registration. This setting is optional since it can be
+    provided by the keyword argument ``form_class`` to the 
+    :func:`~registration.views.register` view.
 
 ``ACTIVATION_FORM``
     A string representing a dotted Python import path to an object that must
-    be a subclass of :class:`~django.forms.Form`. This form its form class for
-    user registration; this can be overridden by passing the keyword
-    argument ``form_class`` to the :func:`~registration.views.activate`
-    view.
+    be a subclass of :class:`~django.forms.Form` and it will be used as form
+    class for user registration. Once more it's optional since it can be
+    overridden by keyword argument ``form_class`` to the 
+    :func:`~registration.views.activate` view.
 
 Upon successful registration -- not activation -- the default redirect
 is to the URL pattern named ``registration_complete``; this can be
@@ -67,10 +68,12 @@ How account data is stored for activation
 -----------------------------------------
 
 During registration, a new instance of
-``registration.models.RegistrationProfile`` (see below) created to keep the
+``registration.models.RegistrationProfile`` (see below) is created to keep the
 email of the new account. An email is then sent to the given email address,
-containing a link the user must click to activate the account; at that point
-the user must be created and/or activated via the given ``activation_method``.
+containing a link the user must click to activate the account; displaying a new
+form collecting any extra data needed, usually at least a password, after
+data is collected and properly configured at the user must be created via the
+given ``activation_method``.
 
 .. currentmodule:: registration.models
 
@@ -78,8 +81,7 @@ the user must be created and/or activated via the given ``activation_method``.
 
    A simple representation of the information needed to activate a new
    user account. This is **not** a user profile; it simply provides a
-   place to temporarily store the activation key and determine whether
-   a given account has been activated.
+   place to temporarily store the activation key and an email address.
 
    Has the following fields:
 
@@ -185,31 +187,32 @@ Additionally, :class:`RegistrationProfile` has a custom manager
 
    .. method:: activate_user(activation_key)
 
-      Validates ``activation_key`` and, if valid, activates the
+      Validates ``activation_key`` and, if valid, the
       ``callback`` callable parameter is called, performing it the
-      actions needed in order to get the new user account created and/or
-      activated.field. To prevent re-activation of accounts, the
+      actions needed in order to get the new user account created.
+      To prevent re-activation of accounts, the
       :attr:`~RegistrationProfile.activation_key` of the
-      :class:`RegistrationProfile` for the account will be set to
+      :class:`RegistrationProfile` for the given email will be set to
       :attr:`RegistrationProfile.ACTIVATED` after successful
       activation.
 
       Returns a two-tuple containing:
       
-      1. On success returns ``callback`` result:
+      1. If activation key is valid it returns ``callback`` result:
       
-         ``User``: object representing the new user account.
+         ``User``: object representing the new user account, on failure it
+         should be a ``falsy`` value and on succes it should be ``truly``
+         value.
          
          ``error_message``: on success this attribute will be
-         ignored, however for convenience it should be ``None``.
+         ignored, however for convenience it might be ``None``. On failure it
+         should be an string represeting the error to be displayed.
 
-      2. On failure:
+      2. When activation key is not found or is invalid:
 
-         ``falsy_value``: any value that evaluates to ``False``
-         on boolean context.
+         ``False``
 
-         ``error_message``: a string contatining the error message
-         to be displayed.
+         ``Your activation key is not valid``
 
       :param activation_key: The activation key to use for the
          activation.
