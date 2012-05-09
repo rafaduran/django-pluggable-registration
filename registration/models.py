@@ -7,6 +7,7 @@ from django.db import models
 from django.template.loader import render_to_string
 from django.utils.hashcompat import sha_constructor
 from django.utils.translation import ugettext_lazy as _
+from django.core.mail import EmailMultiAlternatives
 from django.core.mail import send_mail
 
 
@@ -247,16 +248,43 @@ class RegistrationProfile(models.Model):
         Args:
             ``site`` the above explained ``site``
         """
-        ctx_dict = {'activation_key': self.activation_key,
-                    'expiration_days': settings.ACCOUNT_ACTIVATION_DAYS,
-                    'site': site}
+        email_type = getattr(settings, 'REGISTRATION_EMAIL_TYPE', 'TEXT')
+        ctx_dict = getattr(settings, 'REGISTRATION_EMAIL_CTXT', {}).copy()
+
+        ctx_dict.update({'activation_key': self.activation_key,
+                         'expiration_days': settings.ACCOUNT_ACTIVATION_DAYS,
+                         'site': site})
+
         subject = render_to_string('registration/activation_email_subject.txt',
                                    ctx_dict)
         # Email subject *must not* contain newlines
         subject = ''.join(subject.splitlines())
+
+        if email_type.upper() == "HTML":
+            return self._sent_tml_email(subject, ctx_dict)
+        elif email_type.upper() == "MULTI":
+            return self._send_multi_email(subject, ctx_dict)
+
         
         message = render_to_string('registration/activation_email.txt',
                                    ctx_dict)
-        
+
         send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [self.email])
-    
+
+    def _send_html_email(self, subject, context):
+        message = render_to_string('registration/activation_email.html',
+                                   context)
+
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [self.email])
+
+    def _send_multi_email(self, subject, context):
+        text_content = render_to_string('registration/activation_email.txt',
+                                        context)
+        html_content = render_to_string('registration/activation_email.html',
+                                        context)
+        msg = EmailMultiAlternatives(subject,
+                                     text_content,
+                                     settings.DEFAULT_FROM_EMAIL,
+                                     [self.email])
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
